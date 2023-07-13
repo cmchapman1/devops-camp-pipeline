@@ -11,7 +11,22 @@ pipeline {
     }
     stages {
         //TODO: add stages to pipeline
-        stage('Application repository') {
+        stage('Application repository') 
+        steps {
+                echo "Cloning application repository"
+                sh 'git clone https://github.com/cmchapman1/afs-labs-student.git'
+                dir('afs-labs-student') {
+                    script {
+                        env.COMMIT_HASH = sh(script: 'git log --format=format:%h -1 --follow database/database.sql', returnStdout: true).trim()
+                    }
+                }
+                withCredentials([usernamePassword(credentialsId: 'CCHAPMAN', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    script {
+                        env.BUILD_DB = sh(script: 'python check_harbor_db.py -h $COMMIT_HASH -i $DB_IMAGE_NAME -r $HARBOR_REGISTRY -p $HARBOR_PROJECT -c ${USERNAME}:${PASSWORD}', returnStdout: true).trim()
+                    }
+                }
+            }
+        {
             stage('DB changes: true') {
             when {
               environment name: 'BUILD_DB', value: 'true'
@@ -55,20 +70,7 @@ pipeline {
               }
            }
         }
-            steps {
-                echo "Cloning application repository"
-                sh 'git clone https://github.com/cmchapman1/afs-labs-student.git'
-                dir('afs-labs-student') {
-                    script {
-                        env.COMMIT_HASH = sh(script: 'git log --format=format:%h -1 --follow database/database.sql', returnStdout: true).trim()
-                    }
-                }
-                withCredentials([usernamePassword(credentialsId: 'CCHAPMAN', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    script {
-                        env.BUILD_DB = sh(script: 'python check_harbor_db.py -h $COMMIT_HASH -i $DB_IMAGE_NAME -r $HARBOR_REGISTRY -p $HARBOR_PROJECT -c ${USERNAME}:${PASSWORD}', returnStdout: true).trim()
-                    }
-                }
-            }
+            
         }
     }
     post {

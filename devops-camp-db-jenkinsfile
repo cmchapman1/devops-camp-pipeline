@@ -6,7 +6,7 @@ pipeline {
     environment {
         PIPELINE_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         HARBOR_REGISTRY = 'registry.dev.afsmtddso.com'
-        HARBOR_PROJECT = 'CCHAPMAN'
+        HARBOR_PROJECT = 'cchapman-harbor-project'
         DB_IMAGE_NAME = 'db'
     }
     stages {
@@ -20,7 +20,7 @@ pipeline {
                             env.COMMIT_HASH = sh(script: 'git log --format=format:%h -1 --follow database/database.sql', returnStdout: true).trim()
                         }
                     }
-                    withCredentials([usernamePassword(credentialsId: 'CCHAPMAN', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'cchapman', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                         script {
                             env.BUILD_DB = sh(script: 'python check_harbor_db.py -h $COMMIT_HASH -i $DB_IMAGE_NAME -r $HARBOR_REGISTRY -p $HARBOR_PROJECT -c ${USERNAME}:${PASSWORD}', returnStdout: true).trim()
                         }
@@ -34,10 +34,10 @@ pipeline {
            stages {
               stage('Database docker build') {
                   steps {
-                    withCredentials([usernameColonPassword(credentialsId: 'CCHAPMAN', variable: 'HARBOR-AUTH')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'cchapman', variable: 'HARBOR-AUTH')]) {
                           script {
                               sh 'docker build -t $DB_IMAGE_NAME-$COMMIT_HASH -f ./db/Dockerfile ./afs-labs-student'
-                              docker.withRegistry('https://$HARBOR_REGISTRY', 'CCHAPMAN') {
+                              docker.withRegistry('https://$HARBOR_REGISTRY', 'chapman') {
                                   sh 'docker tag $DB_IMAGE_NAME-$COMMIT_HASH $HARBOR_REGISTRY/$HARBOR_PROJECT/$DB_IMAGE_NAME:$COMMIT_HASH-$PIPELINE_HASH'
                                   sh 'docker push $HARBOR_REGISTRY/$HARBOR_PROJECT/$DB_IMAGE_NAME:$COMMIT_HASH-$PIPELINE_HASH'
                               }
